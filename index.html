@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#00a8e8" />
+  <meta name="description" content="Print to Epson printers via Wi-Fi, Email Print, or Epson Connect API. Installable PWA." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Print Hub" />
+  <title>Epson Print Hub – Wi-Fi & Cloud Printing</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon-192.svg" />
+  <link rel="apple-touch-icon" href="icons/icon-192.svg" />
+
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 9V2h12v7" />
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+          <path d="M6 14h12v8H6z" />
+        </svg>
+        <div>
+          <h1>Epson Print Hub</h1>
+          <p class="tagline">Wi-Fi · Data · Web / Cloud Printing</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn-install hidden" id="installBtn" onclick="installPWA()">
+          Install App
+        </button>
+        <div class="status-pill" id="connectionStatus">
+          <span class="dot"></span>
+          <span>Ready</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="main">
+      <!-- Mode selector -->
+      <section class="card mode-card">
+        <h2>Print Mode</h2>
+        <div class="mode-tabs">
+          <button class="tab active" data-mode="local" id="tabLocal">
+            <span class="tab-icon">📶</span>
+            Local Wi-Fi
+          </button>
+          <button class="tab" data-mode="email" id="tabEmail">
+            <span class="tab-icon">✉️</span>
+            Email Print
+          </button>
+          <button class="tab" data-mode="api" id="tabApi">
+            <span class="tab-icon">☁️</span>
+            Epson Connect API
+          </button>
+        </div>
+      </section>
+
+      <!-- File selection -->
+      <section class="card">
+        <h2>1. Select File</h2>
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" hidden />
+          <div class="dropzone-content">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <p>Drag & drop a file here or <button type="button" class="link-btn" id="browseBtn">browse</button></p>
+            <p class="hint">PDF, images, Office docs, text</p>
+          </div>
+        </div>
+        <div class="file-preview hidden" id="filePreview">
+          <div class="file-info">
+            <span class="file-icon">📄</span>
+            <div>
+              <strong id="fileName">document.pdf</strong>
+              <span id="fileSize">0 KB</span>
+            </div>
+          </div>
+          <button type="button" class="btn-icon" id="removeFile" title="Remove">✕</button>
+        </div>
+      </section>
+
+      <!-- Settings (common) -->
+      <section class="card">
+        <h2>2. Print Settings</h2>
+        <div class="settings-grid">
+          <label>
+            Paper size
+            <select id="paperSize">
+              <option value="ps_a4">A4</option>
+              <option value="ps_letter">Letter</option>
+              <option value="ps_legal">Legal</option>
+              <option value="ps_a3">A3</option>
+              <option value="ps_photo">Photo 4×6</option>
+            </select>
+          </label>
+          <label>
+            Color mode
+            <select id="colorMode">
+              <option value="color">Color</option>
+              <option value="mono">Black &amp; White</option>
+            </select>
+          </label>
+          <label>
+            Quality
+            <select id="quality">
+              <option value="normal">Normal</option>
+              <option value="high">High</option>
+              <option value="draft">Draft</option>
+            </select>
+          </label>
+          <label>
+            Copies
+            <input type="number" id="copies" min="1" max="99" value="1" />
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="duplex" />
+            Double-sided
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="borderless" />
+            Borderless
+          </label>
+        </div>
+      </section>
+
+      <!-- Mode-specific panels -->
+      <section class="card mode-panel" id="panelLocal">
+        <h2>3. Local Wi-Fi / Device Print</h2>
+        <p class="help">Uses the browser’s native print dialog. Works with AirPrint, Mopria, or any installed Epson driver on the same network.</p>
+        <div class="actions">
+          <button class="btn primary" id="btnLocalPrint" disabled>
+            Print via System Dialog
+          </button>
+        </div>
+        <div class="info-box">
+          <strong>Tip:</strong> Make sure your Epson printer is connected to the same Wi-Fi network and appears in your device’s printer list (or use Epson Smart Panel app for discovery).
+        </div>
+      </section>
+
+      <section class="card mode-panel hidden" id="panelEmail">
+        <h2>3. Email Print (Epson Connect)</h2>
+        <p class="help">Send the file to your printer’s unique Epson Connect email address. Works from anywhere (Wi-Fi or mobile data).</p>
+        <label>
+          Printer Email Address
+          <input type="email" id="printerEmail" placeholder="yourprinter@print.epsonconnect.com" />
+        </label>
+        <p class="hint small">Find this address after registering the printer at epsonconnect.com or in the Epson Smart Panel app.</p>
+        <div class="actions">
+          <button class="btn primary" id="btnEmailPrint" disabled>
+            Send via Email Print
+          </button>
+          <button class="btn secondary" id="btnCopyEmail">
+            Copy Email Address
+          </button>
+        </div>
+        <div class="info-box">
+          <strong>How it works:</strong> The app opens your email client (or creates a mailto link) with the file attached. The Epson cloud receives the message and sends the job to the printer over the internet.
+        </div>
+      </section>
+
+      <section class="card mode-panel hidden" id="panelApi">
+        <h2>3. Epson Connect API (Developer)</h2>
+        <p class="help">Full programmatic printing using the official Epson Connect API v2. Requires a developer license from <a href="https://developer.epsonconnect.com" target="_blank" rel="noopener">developer.epsonconnect.com</a>.</p>
+
+        <div class="api-config">
+          <label>
+            Client ID
+            <input type="text" id="clientId" placeholder="Your Client ID" autocomplete="off" />
+          </label>
+          <label>
+            Client Secret
+            <input type="password" id="clientSecret" placeholder="Your Client Secret" autocomplete="off" />
+          </label>
+          <label>
+            API Key
+            <input type="text" id="apiKey" placeholder="x-api-key value" autocomplete="off" />
+          </label>
+          <label>
+            Device / Printer ID or Email
+            <input type="text" id="deviceId" placeholder="device_id or printer email" />
+          </label>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="btnApiPrint" disabled>
+            Create Job &amp; Print (API)
+          </button>
+          <button class="btn secondary" id="btnSaveConfig">
+            Save Config (local)
+          </button>
+        </div>
+
+        <div class="info-box warning">
+          <strong>Note:</strong> This demo runs in the browser. Real API calls need a backend (CORS + secrets). See the <code>api-example.js</code> and README for a Node.js / Python skeleton that uses the official flow:
+          <ol>
+            <li>Authenticate (OAuth2) → obtain device token</li>
+            <li>Create print job</li>
+            <li>Upload file</li>
+            <li>Execute print</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Log / status -->
+      <section class="card">
+        <h2>Activity Log</h2>
+        <div class="log" id="log"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Prototype for Epson Wi-Fi / Data / Web printing · Not affiliated with Seiko Epson Corporation</p>
+      <p>Use Epson Smart Panel or official drivers for production printing.</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // Register Service Worker for PWA offline support
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => {
+            console.log('Service Worker registered:', reg.scope);
+            // Optional: show update available
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              newWorker?.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('New version available – refresh to update');
+                }
+              });
+            });
+          })
+          .catch((err) => console.warn('SW registration failed:', err));
+      });
+    }
+
+    // Capture beforeinstallprompt for custom install button (optional)
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('installBtn');
+      if (btn) btn.classList.remove('hidden');
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredPrompt = null;
+      const btn = document.getElementById('installBtn');
+      if (btn) btn.classList.add('hidden');
+      console.log('PWA installed');
+    });
+
+    function installPWA() {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => {
+        deferredPrompt = null;
+        const btn = document.getElementById('installBtn');
+        if (btn) btn.classList.add('hidden');
+      });
+    }
+  </script>
+</body>
+</html>
